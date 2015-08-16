@@ -2,7 +2,7 @@
 #define FACTOR_BASE_HPP
 
 #include <tuple>
-#include <vector>
+#include <unordered_map>
 
 #include "base/variable.hpp"
 #include "util/tuple_algorithm.hpp"
@@ -13,32 +13,49 @@ namespace base {
 template<typename... VarTypes>
 struct factor {
 
-protected:
-
-    factor() {}
-    factor(std::size_t numvars) {
-        variable_reserve(std::array<std::size_t, sizeof...(VarTypes)>(numvars));
-    }
-    template <typename SizeSequence>
-    factor(SizeSequence&& _sizes) {
-        variable_reserve(_sizes);
-    }
+    //requires is_same<VarTypes...::descriptor, VarDescriptor>::value == true
 
     template <typename VarType>
-    std::size_t variable_count() const {
-        return std::get<std::vector<VarType>>(_var_map).size();
+    using _var_map_type = std::unordered_map <
+            VarType,
+            std::size_t,
+            std::hash<typename VarType::descriptor>,
+            std::equal_to<typename VarType::descriptor>
+    >;
+
+    //Default/Copy/Move constructors
+    factor() = default;
+    factor(const factor& other) = default;
+    factor(factor&& other) = default;
+
+    //Initialize hash map buckets
+    template <typename... Sizes>
+    factor(Sizes&&... sizes) : _nvars(0), _var_map(_var_map_type<VarTypes>{sizes}...){
+        static_assert(sizeof...(Sizes) == sizeof...(VarTypes),
+                      "The number buckets must match each variable type.");
     }
 
-    template <typename SizeSequence>
-    void variable_reserve(SizeSequence&& _sizes) {
-        //require SizeSequence::value_type is convertible to std::size_t
-        assert(_sizes.size() == sizeof...(VarTypes));
-        auto it = _sizes.begin();
-        util::tuple_for_each(_var_map, [it](auto element){ element.reserve(*it++);});
+    //Get the overall variable count
+    std::size_t variable_count() const {
+        return _nvars;
+    }
+
+    //Add a variable of supported type
+    template <typename VarType>
+    void add_variable(const VarType& variable) {
+        std::get< _var_map_type<VarType> >(_var_map)
+                [variable] = _nvars++;
+    }
+    //Adding a variable (move semantics)
+    template <typename VarType>
+    void add_variable(VarType&& variable) {
+        std::get< _var_map_type<VarType> >(_var_map)
+                [std::move(variable)] = _nvars++;
     }
 
 private:
-    std::tuple<std::vector<VarTypes...>> _var_map;
+    std::size_t _nvars;
+    std::tuple < _var_map_type<VarTypes>... >_var_map;
 };
 
 }
