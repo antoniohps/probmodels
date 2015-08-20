@@ -1,8 +1,19 @@
 #include "google/gtest/include/gtest/gtest.h"
 #include "util/tuple_algorithm.hpp"
+#include "util/tuple_operations.hpp"
 
 using namespace probmodels::util;
 using namespace std;
+
+TEST(TupleOps, BelongsTo) {
+    EXPECT_EQ(true, ((bool)belongs_to<char, tuple<int,float,char,double> >()));
+    EXPECT_EQ(false, ((bool)belongs_to<void, tuple<int,float,char,double> >()));
+}
+
+TEST(TupleOps, Union) {
+    EXPECT_EQ(4, (tuple_size<typename tuple_union<tuple<int,char>,tuple<float,double>>::type>::value) );
+    EXPECT_EQ(3, (tuple_size<typename tuple_union<tuple<int,char>,tuple<char,double>>::type>::value) );
+}
 
 
 TEST(TupleSum, NumericDefault) {

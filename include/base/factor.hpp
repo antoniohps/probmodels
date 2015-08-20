@@ -29,6 +29,7 @@ struct factor {
     factor(factor&& other) = default;
 
     //Initialize hash map buckets
+    //Two pack expansions?? Yeah, we can do it! See: http://en.cppreference.com/w/cpp/language/parameter_pack
     template <typename... Sizes>
     factor(Sizes&&... sizes) : _nvars(0), _var_map(_var_map_type<VarTypes>{sizes}...){
         static_assert(sizeof...(Sizes) == sizeof...(VarTypes),
